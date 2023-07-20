@@ -4,42 +4,45 @@ const auth = require('../middleware/auth');
 const multer = require('../middleware/multer-config');
 const Book = require('../models/Book');
 
+// Récupérer tous les livres
 router.get('/', (req, res, next) => {
   Book.find()
     .then(books => {
-      console.log('Fetched all books:', books);
+      console.log('Récupération de tous les livres :', books);
       res.status(200).json(books);
     })
     .catch(error => {
-      console.error('Error while fetching books:', error);
+      console.error('Erreur lors de la récupération des livres :', error);
       res.status(400).json({ error });
     });
 });
 
+// Récupérer un livre par son ID
 router.get('/:id', (req, res, next) => {
   Book.findOne({ _id: req.params.id })
     .then(book => {
       if (book) {
-        console.log('Fetched book:', book);
+        console.log('Récupération du livre :', book);
         res.status(200).json(book);
       } else {
-        console.log('Book not found');
-        res.status(404).json({ error: 'Book not found' });
+        console.log('Livre introuvable');
+        res.status(404).json({ error: 'Livre introuvable' });
       }
     })
     .catch(error => {
-      console.error('Error while fetching book:', error);
+      console.error('Erreur lors de la récupération du livre :', error);
       res.status(500).json({ error });
     });
 });
 
+// Créer un nouveau livre
 router.post('/', auth, multer, (req, res, next) => {
-  console.log('Received request to create a book:', req.body);
+  console.log('Requête reçue pour créer un livre :', req.body);
 
   const bookObject = JSON.parse(req.body.book);
   delete bookObject._id;
 
-  console.log('Parsed book object:', bookObject);
+  console.log('Objet livre analysé :', bookObject);
 
   const book = new Book({
     ...bookObject,
@@ -48,31 +51,82 @@ router.post('/', auth, multer, (req, res, next) => {
 
   book.save()
     .then(() => {
-      console.log('Book saved successfully');
-      res.status(201).json({ message: 'Livre enregistré !'});
+      console.log('Livre enregistré avec succès');
+      res.status(201).json({ message: 'Livre enregistré !' });
     })
     .catch(error => {
-      console.error('Error while saving the book:', error);
+      console.error('Erreur lors de l\'enregistrement du livre :', error);
       res.status(400).json({ error });
     });
 });
 
+// Mettre à jour un livre
 router.put('/:id', auth, multer, (req, res, next) => {
-  console.log('Received request to update a book:', req.body);
+  console.log('Requête reçue pour mettre à jour un livre :', req.body);
 
-  // Rest of the code...
+  const bookId = req.params.id;
+  const bookObject = JSON.parse(req.body.book);
+  delete bookObject._id;
+
+  Book.findByIdAndUpdate(bookId, { ...bookObject }, { new: true })
+    .then(updatedBook => {
+      if (updatedBook) {
+        console.log('Livre mis à jour avec succès :', updatedBook);
+        res.status(200).json(updatedBook);
+      } else {
+        console.log('Livre introuvable');
+        res.status(404).json({ error: 'Livre introuvable' });
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la mise à jour du livre :', error);
+      res.status(500).json({ error });
+    });
 });
 
+// Supprimer un livre
 router.delete('/:id', auth, (req, res, next) => {
-  console.log('Received request to delete a book:', req.params.id);
+  console.log('Requête reçue pour supprimer un livre :', req.params.id);
 
-  // Rest of the code...
+  const bookId = req.params.id;
+
+  Book.findByIdAndRemove(bookId)
+    .then(deletedBook => {
+      if (deletedBook) {
+        console.log('Livre supprimé avec succès :', deletedBook);
+        res.status(200).json({ message: 'Livre supprimé avec succès' });
+      } else {
+        console.log('Livre introuvable');
+        res.status(404).json({ error: 'Livre introuvable' });
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la suppression du livre :', error);
+      res.status(500).json({ error });
+    });
 });
 
+// Ajouter une note à un livre
 router.post('/:id/rating', auth, (req, res, next) => {
-  console.log('Received request to add a rating for a book:', req.body);
+  console.log('Requête reçue pour ajouter une note à un livre :', req.body);
 
-  // Rest of the code...
+  const bookId = req.params.id;
+  const rating = req.body.rating;
+
+  Book.findByIdAndUpdate(bookId, { $push: { ratings: rating } }, { new: true })
+    .then(updatedBook => {
+      if (updatedBook) {
+        console.log('Note ajoutée au livre avec succès :', updatedBook);
+        res.status(200).json(updatedBook);
+      } else {
+        console.log('Livre introuvable');
+        res.status(404).json({ error: 'Livre introuvable' });
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de l\'ajout de la note au livre :', error);
+      res.status(500).json({ error });
+    });
 });
 
 module.exports = router;

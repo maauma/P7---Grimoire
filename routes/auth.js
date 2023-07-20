@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Route d'inscription
 router.post('/signup', (req, res, next) => {
   bcrypt.hash(req.body.password, 10)
     .then(hash => {
@@ -18,6 +19,7 @@ router.post('/signup', (req, res, next) => {
     .catch(error => res.status(500).json({ error }));
 });
 
+// Route de connexion
 router.post('/login', (req, res, next) => {
   User.findOne({ email: req.body.email })
     .then(user => {
@@ -29,6 +31,7 @@ router.post('/login', (req, res, next) => {
           if (!valid) {
             return res.status(401).json({ error: 'Mot de passe incorrect !' });
           }
+          // Génération du token JWT
           res.status(200).json({
             userId: user._id,
             token: jwt.sign(
