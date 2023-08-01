@@ -17,20 +17,17 @@ router.get('/bestrating', (req, res, next) => {
     });
 });
 
-
 router.get('/', (req, res, next) => {
   Book.find()
     .then(books => res.status(200).json(books))
     .catch(error => res.status(400).json({ error }));
 });
 
-
 router.get('/:id', (req, res, next) => {
   Book.findOne({ _id: req.params.id })
     .then(book => res.status(200).json(book))
     .catch(error => res.status(404).json({ error }));
 });
-
 
 router.post('/', auth, multer, (req, res, next) => {
   const book = new Book({
@@ -48,15 +45,16 @@ router.delete('/:id', auth, (req, res, next) => {
     .catch(error => res.status(400).json({ error }));
 });
 
-// Ajouter une note à un livre
 router.post('/:id/rating', auth, (req, res, next) => {
-  if (req.body.grade < 1 || req.body.grade > 5) {
-    return res.status(400).json({ error: 'Rating should be a number between 1 and 5.' });
+  const rating = Number(req.body.rating);
+
+  if (isNaN(rating) || rating < 0 || rating > 5) {
+    return res.status(400).json({ error: 'Rating should be a number between 0 and 5.' });
   }
 
-  const rating = {
+  const userRating = {
     userId: req.body.userId,
-    grade: req.body.grade
+    grade: rating // Change 'rating' to 'grade'
   };
 
   Book.findOne({ _id: req.params.id })
@@ -65,20 +63,32 @@ router.post('/:id/rating', auth, (req, res, next) => {
         throw new Error('Book not found');
       }
 
-      if (book.ratings.find(r => r.userId === rating.userId)) {
+      if (book.ratings.find(r => r.userId === userRating.userId)) {
         throw new Error('User has already rated this book');
       }
 
-      book.ratings.push(rating);
-      book.averageRating =
-        book.ratings.reduce((acc, cur) => acc + cur.grade, 0) / book.ratings.length;
+      book.ratings.push(userRating);
+      
+      // Add a condition to prevent division by zero
+      if (book.ratings.length > 0) {
+        book.averageRating =
+          book.ratings.reduce((acc, cur) => acc + cur.grade, 0) / book.ratings.length; // Change 'cur.rating' to 'cur.grade'
+      } else {
+        book.averageRating = 0;
+      }
+
       return book.save();
     })
-    .then(() => res.status(200).json({ message: 'Rating added successfully!' }))
-    .catch(error => res.status(500).json({ error: error.message }));
+    .then((book) => res.status(200).json(book)) // Pass 'book' as a parameter here
+    .catch(error => {
+      console.log(error);
+      res.status(500).json({ error: error.message });
+    });
 });
 
-// Mettre à jour un livre
+
+
+
 router.put('/:id', auth, (req, res, next) => {
   console.log('Requête reçue pour mettre à jour un livre :', req.body);
 
@@ -86,37 +96,29 @@ router.put('/:id', auth, (req, res, next) => {
   let bookObject;
 
   if (req.body.book) {
-    // Si un livre est fourni en tant que chaîne de caractères JSON, l'analyser
     bookObject = JSON.parse(req.body.book);
   } else {
-    // Si aucun livre n'est fourni en tant que chaîne de caractères JSON, utiliser req.body directement
     bookObject = { ...req.body };
   }
 
-  // Si une image est fournie, mettre à jour l'URL de l'image
   if (req.file) {
     bookObject.imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
   }
 
-  // Supprimer l'appel au middleware Multer pour cette route si aucune image n'est fournie
   if (!req.file) {
-    // Appeler la fonction de mise à jour directement
     updateBook(bookId, bookObject, res);
   } else {
-    // Sinon, utiliser le middleware Multer pour gérer l'image et l'optimisation avec Sharp
     multer(req, res, (err) => {
       if (err instanceof multer.MulterError) {
-        return res.status(500).json(err); // Gestion des erreurs liées à Multer
+        return res.status(500).json(err);
       } else if (err) {
-        return res.status(500).json(err); // Gestion des autres erreurs
+        return res.status(500).json(err);
       }
-      // Appeler la fonction de mise à jour une fois l'optimisation terminée
       updateBook(bookId, bookObject, res);
     });
   }
 });
 
-// Fonction pour mettre à jour le livre dans la base de données
 function updateBook(bookId, bookObject, res) {
   Book.findByIdAndUpdate(bookId, { ...bookObject }, { new: true })
     .then(updatedBook => {
