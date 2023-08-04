@@ -1,18 +1,26 @@
+// Importation du module jsonwebtoken
 const jwt = require('jsonwebtoken');
 
+// Exportation d'un middleware pour l'authentification basée sur les tokens JWT
 module.exports = (req, res, next) => {
   try {
-    const token = req.headers.authorization.split(' ')[1]; // Extraction du token du header d'autorisation
-    const decodedToken = jwt.verify(token, 'RANDOM_TOKEN_SECRET'); // Vérification et décryptage du token
-    const userId = decodedToken.userId; // Récupération de l'identifiant de l'utilisateur à partir du token décrypté
+    // Extraction du token du header d'autorisation
+    const token = req.headers.authorization.split(' ')[1];
+    // Vérification et décryptage du token
+    const decodedToken = jwt.verify(token, 'RANDOM_TOKEN_SECRET');
+    // Récupération de l'identifiant de l'utilisateur à partir du token décrypté
+    const userId = decodedToken.userId;
+    // Comparaison de l'identifiant utilisateur dans le corps de la requête avec celui extrait du token
     if (req.body.userId && req.body.userId !== userId) {
-      throw 'Identifiant utilisateur invalide'; // Comparaison de l'identifiant utilisateur dans le corps de la requête avec celui extrait du token
+      throw 'Identifiant utilisateur invalide';
     } else {
-      next(); // Appel de la fonction suivante si l'identifiant utilisateur est valide
+      // Appel de la fonction suivante si l'identifiant utilisateur est valide
+      next();
     }
   } catch {
+    // En cas d'erreur, renvoie une réponse d'erreur avec un message approprié
     res.status(401).json({
-      error: new Error('Requête invalide !') // En cas d'erreur, renvoie une réponse d'erreur avec un message approprié
+      error: new Error('Requête invalide !')
     });
   }
 };
