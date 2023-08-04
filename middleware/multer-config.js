@@ -35,24 +35,39 @@ const upload = multer({
 }).single('image'); // Accepte un seul fichier du champ 'image'
 
 // Exportation d'un middleware pour le téléchargement et l'optimisation d'images
+// ...
+
 module.exports = (req, res, next) => {
   upload(req, res, function(err) {
     // Gestion des erreurs liées à Multer
     if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        console.log('Le fichier est trop lourd'); // Affiche le message dans la console
+      }
       return res.status(500).json(err);
     }
     // Gestion des autres erreurs
     else if (err) {
       return res.status(500).json(err);
     }
-    // Optimisation de l'image avec Sharp
-    sharp(req.file.path)
-      .resize(500) // Redimensionne l'image à une largeur de 500 pixels (la hauteur est ajustée proportionnellement)
-      .jpeg({ quality: 50 }) // Convertit l'image en format JPEG avec une qualité de 50%
-      .toFile(
-        // Enregistre l'image redimensionnée dans le dossier "resized"
-        path.resolve(req.file.destination, 'resized', req.file.filename)
-      );
+
+    // Vérifie si le fichier existe
+    if (req.file && req.file.size > 1000000) {
+      console.log('Le fichier est trop lourd');
+      return res.status(400).json({ message: 'Le fichier est trop lourd' });
+    }
+
+    // Si un fichier a été téléchargé, optimisez-le
+    if (req.file) {
+      // Optimisation de l'image avec Sharp
+      sharp(req.file.path)
+        .resize(500)
+        .jpeg({ quality: 50 })
+        .toFile(path.resolve(req.file.destination, req.file.filename));
+    }
+
     next(); // Appel de la fonction suivante
   });
 };
+
+
