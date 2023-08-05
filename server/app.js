@@ -16,7 +16,6 @@ const authLimiter = rateLimit({
   message: 'Trop de tentatives de connexion à partir de cette adresse IP. Veuillez réessayer dans 15 minutes.'
 });
 
-
 // Se connecter à MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
@@ -26,7 +25,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 .catch(() => console.log('Connexion à MongoDB échouée !'));
 
 // Activer CORS depuis le client-side
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors());
 
 // Utiliser le Body Parser
 app.use(bodyParser.json());
@@ -39,9 +38,6 @@ app.use('/api/auth', authLimiter, authRoutes);
 
 // Définir les routes pour les livres
 app.use('/api/books', bookRoutes);
-
-// Définir les routes pour les livres
-app.use('/api/auth', authRoutes);
 
 // Exporter l'application pour une utilisation dans server.js
 module.exports = app;

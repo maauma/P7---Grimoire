@@ -38,20 +38,16 @@ module.exports = (req, res, next) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         console.log('Le fichier est trop lourd'); // Affiche le message dans la console
+        // Envoie un message personnalisé au client
+        return res.status(400).json({ error: 'Le fichier est trop lourd' });
       }
       console.log(err);
-      return res.status(500).json(err);
+      return res.status(500).json({ error: err.message });
     }
     // Gestion des autres erreurs
     else if (err) {
       console.log(err); 
-      return res.status(500).json(err);
-    }
-
-    // Vérifie si le fichier existe
-    if (req.file && req.file.size > 1000000) {
-      console.log('Le fichier est trop lourd');
-      return res.status(400).json({ message: 'Le fichier est trop lourd' });
+      return res.status(500).json({ error: err.message });
     }
 
     next(); // Appel de la fonction suivante
