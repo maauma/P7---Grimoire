@@ -1,46 +1,49 @@
 // Importation des modules nécessaires
 const Book = require('../../models/Book');
 const fs = require('fs');
+const path = require('path');
 
 // Fonction pour mettre à jour un livre
 exports.updateBook = (req, res, next) => {
-  // Récupère l'ID du livre à partir des paramètres de la requête
-  const bookId = req.params.id;
+  const bookId = req.params.id; // Récupération de l'ID du livre
 
-  // Recherche le livre par son ID
+  // Recherche du livre dans la base de données
   Book.findById(bookId).then(oldBook => {
     let oldFilename = null;
-    // Si le livre existe et a une image, récupère le nom du fichier de l'image
+    // Si le livre a une image, récupération du nom de fichier de l'ancienne image
     if (oldBook && oldBook.imageUrl) {
       oldFilename = oldBook.imageUrl.split('/images/')[1];
     }
 
-    // Construit l'objet du livre avec les données reçues
+    // Création de l'objet livre à partir des données reçues
     const bookObject = req.body.book ? JSON.parse(req.body.book) : { ...req.body };
 
-    // Si un fichier est inclus dans la requête, met à jour l'URL de l'image du livre
+    // Si une nouvelle image est fournie, mise à jour de l'URL de l'image
     if (req.file) {
       bookObject.imageUrl = `${req.protocol}://${req.get('host')}/images/${req.file.filename}`;
     }
 
-    // Met à jour le livre dans la base de données
+    // Mise à jour du livre dans la base de données
     Book.findByIdAndUpdate(bookId, { ...bookObject }, { new: true })
       .then(updatedBook => {
-        // Si le livre a été mis à jour, retourne le livre mis à jour
         if (updatedBook) {
           res.status(200).json(updatedBook);
 
-          // Si un ancien fichier existait et qu'un nouveau fichier a été téléchargé, supprime l'ancien fichier
+          // Si une ancienne image existe et qu'une nouvelle image a été téléchargée, suppression de l'ancienne image
           if (oldFilename && req.file) {
-            fs.unlink(`images/${oldFilename}`, () => {
-              console.log('Ancienne image supprimée');
+            const filepath = path.resolve(__dirname, '../../images', oldFilename);
+            fs.unlink(filepath, (err) => {
+              if (err) {
+                console.error(err);
+              } else {
+                console.log('Old image file deleted');
+              }
             });
           }
         } else {
-          // Si le livre n'a pas été trouvé, retourne une erreur
-          res.status(404).json({ error: 'Livre introuvable' });
+          res.status(404).json({ error: 'Book not found' });
         }
       })
-      .catch(error => res.status(500).json({ error })); // En cas d'erreur, retourne l'erreur
+      .catch(error => res.status(500).json({ error }));
   });
 };
