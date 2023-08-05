@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 const bookSchema = mongoose.Schema({
   userId: { type: String, required: true }, // Identifiant de l'utilisateur lié au livre
   title: { type: String, required: true }, // Titre du livre
